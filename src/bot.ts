@@ -1,5 +1,7 @@
 import chalk from 'chalk';
 import Requests from './utils/request';
+import type { MiraiApiResponse } from './utils/request';
+import Logger from './utils/log';
 
 export type AdapterOption = Partial<{
   http: boolean;
@@ -32,14 +34,30 @@ export default class Bot {
   }
 
   async initialize(): Promise<void> {
+    const isConnected = await this.checkMiraiStatus();
+    if (!isConnected) {
+      Logger.log('Connection Failed. Aborted.', Logger.critical);
+      process.exit(1);
+    }
+  }
+
+  async checkMiraiStatus(): Promise<boolean> {
     try {
-      const res = await this.session.httpRequest('/about');
-      console.log(res);
+      const res = await this.session.httpRequest<MiraiApiResponse>('/about');
+      const { code, msg } = res as MiraiApiResponse;
+      if (code === 0) {
+        Logger.log('Checking connection to server: passed', Logger.success);
+        return true;
+      } else {
+        Logger.log(
+          `Checking connection to server: [${code}: ${msg}]`,
+          Logger.warn
+        );
+        return false;
+      }
     } catch (err) {
-      console.log(
-        chalk.red.bold('Initialize Failed. The process will exit soon.')
-      );
-      process.exit(0);
+      Logger.log('Checking connection to server: failed', Logger.error);
+      return false;
     }
   }
 }

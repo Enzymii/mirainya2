@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import chalk from 'chalk';
+import Logger from './log';
 
 export default class Requests {
   private instance: AxiosInstance;
@@ -24,10 +25,17 @@ export default class Requests {
         return resp as T;
       }
     } catch (err) {
-      console.log(
-        chalk.red(`Error occurred when sending HTTP request: ${err}`)
+      Logger.log(
+        `Error occurred when sending HTTP request: ${err}`,
+        Logger.error
       );
       throw err;
     }
   };
+}
+
+export interface MiraiApiResponse {
+  code: number;
+  msg: string;
+  data?: any;
 }
