@@ -1,5 +1,7 @@
 # mirainya2
 
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+
 A new version of typescript QQ bot SDK based on `mirai-api-http v2`
 
 This repo is under quite slow construction
@@ -14,5 +16,4 @@ Currently you can clone the repo test it in `index.ts` by modifying the code
 
 When I finish this I will publish it to `npm`, so `npm install mirainya2` should be available then.
 
-
-*Welcome contribution*
+_Welcome contribution_
