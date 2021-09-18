@@ -15,7 +15,7 @@ export default class HttpRequest {
     url: string,
     data?: Record<string, unknown>,
     method: 'GET' | 'POST' = 'GET'
-  ): Promise<T | void> => {
+  ): Promise<T> => {
     const reqBody = { ...{ sessionKey: this.session }, ...data };
     try {
       if (method === 'GET') {
