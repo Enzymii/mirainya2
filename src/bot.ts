@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import Requests from './utils/request';
+import HttpRequest from './utils/request';
 import type { MiraiApiResponse } from './utils/request';
 import Logger from './utils/log';
 
@@ -22,7 +22,7 @@ export default class Bot {
   key: string;
   baseUrl: string;
   adapter: AdapterOption;
-  session: Requests;
+  session: HttpRequest;
 
   constructor(config: BotConfig) {
     const { qq, verifyKey, host, port, adapter, timeout } = config;
@@ -30,7 +30,7 @@ export default class Bot {
     this.key = verifyKey;
     this.baseUrl = `${host}:${port}`;
     this.adapter = adapter;
-    this.session = new Requests(`${this.baseUrl}`, timeout);
+    this.session = new HttpRequest(`${this.baseUrl}`, timeout);
   }
 
   async initialize(): Promise<void> {
@@ -39,11 +39,19 @@ export default class Bot {
       Logger.log('Connection Failed. Aborted.', Logger.critical);
       process.exit(1);
     }
+
+    const login =
+      (await this.session.verify(this.key)) !== null &&
+      (await this.session.bind(this.qq));
+    if (!login) {
+      Logger.log('Login Failed. Aborted.', Logger.critical);
+      process.exit(0);
+    }
   }
 
   async checkMiraiStatus(): Promise<boolean> {
     try {
-      const res = await this.session.httpRequest<MiraiApiResponse>('/about');
+      const res = await this.session.sendRequest<MiraiApiResponse>('/about');
       const { code, msg } = res as MiraiApiResponse;
       if (code === 0) {
         Logger.log('Checking connection to server: passed', Logger.success);
