@@ -1,5 +1,6 @@
 import HttpRequest from './utils/request';
 import Logger from './utils/log';
+import Api from './api';
 import { recvIsMessage } from './types/message';
 import { RecvEvents } from './types/event';
 
@@ -33,6 +34,8 @@ export default class Bot {
 
   private isLogined: boolean;
 
+  private readonly _api: Api;
+
   constructor(config: BotConfig) {
     const { qq, verifyKey, host, port, adapter, timeout } = config;
     this.qq = qq;
@@ -42,6 +45,15 @@ export default class Bot {
     this.session = new HttpRequest(`${this.baseUrl}`, timeout);
 
     this.isLogined = false;
+
+    this._api = new Api(this.session);
+  }
+
+  public get api(): Api | null {
+    if (!this.checkLoginStatus) {
+      return null;
+    }
+    return this._api;
   }
 
   public async initialize(): Promise<void> {
