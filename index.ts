@@ -7,6 +7,12 @@ const main = async () => {
   const bot = new Bot(botConfig);
   await bot.initialize();
   await bot.login();
+  const id = await bot.api?.sendFriendMessage(974011935, [
+    { type: 'Plain', text: 'qwq' },
+  ]);
+  if (id) {
+    await bot.api?.recallMessage(id);
+  }
 
   bot.listen((msg) => Logger.log(JSON.stringify(msg)), 'all');
 };
