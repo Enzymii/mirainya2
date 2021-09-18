@@ -1,4 +1,12 @@
+import type { RecvEvents } from './event';
 import type { FriendInfo, MemberProfile } from './profile';
+
+export type RecvType = RecvMessageChain | RecvEvents;
+
+const recvIsMessage = (recv: RecvType): recv is RecvMessageChain => {
+  return recv.type.indexOf('Message') != -1;
+};
+export { recvIsMessage };
 
 export type Message =
   | AtMessage

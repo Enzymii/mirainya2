@@ -10,7 +10,7 @@ export default class Logger {
   static readonly error = chalk.red;
   static readonly critical = chalk.red.bold;
 
-  static log(msg: string, chalk: Chalk = this.text) {
+  static log(msg: string, chalk: Chalk = this.text): void {
     const dateFmt = dateFormat(new Date(), 'yy/mm/dd HH:MM:ss');
     console.log(chalk(`[${dateFmt}] ${msg}`));
   }

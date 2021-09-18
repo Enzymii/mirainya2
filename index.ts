@@ -6,6 +6,9 @@ const main = async () => {
   Logger.log('Started.');
   const bot = new Bot(botConfig);
   await bot.initialize();
+  await bot.login();
+
+  bot.listen((msg) => Logger.log(JSON.stringify(msg)), 'all');
 };
 
 main();

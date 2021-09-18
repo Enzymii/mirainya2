@@ -1,7 +1,10 @@
-import chalk from 'chalk';
 import HttpRequest from './utils/request';
-import type { MiraiApiResponse } from './utils/request';
 import Logger from './utils/log';
+import { recvIsMessage } from './types/message';
+import { RecvEvents } from './types/event';
+
+import type { MiraiApiResponse } from './utils/request';
+import type { RecvMessageChain, RecvType } from './types/message';
 
 export type AdapterOption = Partial<{
   http: boolean;
@@ -17,12 +20,18 @@ export interface BotConfig {
   timeout?: number;
 }
 
+export interface RecvCallback {
+  (recv: RecvType | RecvMessageChain | RecvEvents): void;
+}
+
 export default class Bot {
-  qq: number;
-  key: string;
-  baseUrl: string;
-  adapter: AdapterOption;
-  session: HttpRequest;
+  private qq: number;
+  private key: string;
+  private baseUrl: string;
+  private adapter: AdapterOption;
+  private session: HttpRequest;
+
+  private isLogined: boolean;
 
   constructor(config: BotConfig) {
     const { qq, verifyKey, host, port, adapter, timeout } = config;
@@ -31,25 +40,75 @@ export default class Bot {
     this.baseUrl = `${host}:${port}`;
     this.adapter = adapter;
     this.session = new HttpRequest(`${this.baseUrl}`, timeout);
+
+    this.isLogined = false;
   }
 
-  async initialize(): Promise<void> {
+  public async initialize(): Promise<void> {
     const isConnected = await this.checkMiraiStatus();
     if (!isConnected) {
       Logger.log('Connection Failed. Aborted.', Logger.critical);
       process.exit(1);
     }
-
-    const login =
-      (await this.session.verify(this.key)) !== null &&
-      (await this.session.bind(this.qq));
-    if (!login) {
-      Logger.log('Login Failed. Aborted.', Logger.critical);
-      process.exit(0);
-    }
   }
 
-  async checkMiraiStatus(): Promise<boolean> {
+  public async login(): Promise<boolean> {
+    return (this.isLogined =
+      (await this.session.verify(this.key)) !== null &&
+      (await this.session.bind(this.qq)));
+  }
+
+  public listen(
+    callback: RecvCallback,
+    filter: 'msg' | 'events' | 'all' = 'all'
+  ): NodeJS.Timer | void {
+    interface FetchMessageResponse extends MiraiApiResponse {
+      data: RecvType[];
+    }
+
+    const reportError = (err: unknown) => {
+      Logger.log(`Fetch Message Failed: ${err}`, Logger.error);
+    };
+
+    if (!this.checkLoginStatus()) return;
+
+    const listenerTimer = setInterval(async () => {
+      try {
+        const { code, msg, data } =
+          (await this.session.sendRequest<MiraiApiResponse>('/fetchMessage', {
+            count: 10,
+          })) as FetchMessageResponse;
+
+        if (code !== 0) {
+          reportError(`[${code}]${msg}`);
+        } else {
+          data.forEach((recv) => {
+            switch (filter) {
+              case 'events':
+                if (!recvIsMessage(recv)) {
+                  callback(recv as RecvEvents);
+                }
+                break;
+              case 'msg':
+                if (recvIsMessage(recv)) {
+                  callback(recv as RecvMessageChain);
+                }
+                break;
+              default:
+                callback(recv as RecvType);
+                break;
+            }
+          });
+        }
+      } catch (err) {
+        reportError(err);
+      }
+    }, 2000);
+
+    return listenerTimer;
+  }
+
+  private async checkMiraiStatus(): Promise<boolean> {
     try {
       const res = await this.session.sendRequest<MiraiApiResponse>('/about');
       const { code, msg } = res as MiraiApiResponse;
@@ -67,5 +126,12 @@ export default class Bot {
       Logger.log('Checking connection to server: failed', Logger.error);
       return false;
     }
+  }
+
+  private checkLoginStatus(): boolean {
+    if (!this.isLogined) {
+      Logger.log('Login Required.', Logger.critical);
+    }
+    return this.isLogined;
   }
 }

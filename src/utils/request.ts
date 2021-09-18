@@ -1,6 +1,5 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
-import chalk from 'chalk';
 import Logger from './log';
 
 export default class HttpRequest {
@@ -14,17 +13,19 @@ export default class HttpRequest {
 
   public sendRequest = async <T>(
     url: string,
-    data?: Record<string, any>,
+    data?: Record<string, unknown>,
     method: 'GET' | 'POST' = 'GET'
   ): Promise<T | void> => {
+    const reqBody = { ...{ sessionKey: this.session }, ...data };
     try {
       if (method === 'GET') {
-        let resp: unknown = (await this.instance.get(url, { params: data }))
-          .data;
+        const resp: unknown = (
+          await this.instance.get(url, { params: reqBody })
+        ).data;
         return resp as T;
       } else {
-        let resp: unknown = (
-          await this.instance.post(url, JSON.stringify(data))
+        const resp: unknown = (
+          await this.instance.post(url, JSON.stringify(reqBody))
         ).data;
         return resp as T;
       }
@@ -93,7 +94,7 @@ export default class HttpRequest {
     return true;
   };
 
-  private reportError = (err: any, text: string) => {
+  private reportError = (err: unknown, text: string) => {
     Logger.log(`${text} failed due to ${err}`, Logger.error);
   };
 }
@@ -101,5 +102,5 @@ export default class HttpRequest {
 export interface MiraiApiResponse {
   code: number;
   msg: string;
-  data?: any;
+  data?: unknown;
 }

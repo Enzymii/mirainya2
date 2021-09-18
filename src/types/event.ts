@@ -1,3 +1,4 @@
+import type { MessageChain } from './message';
 import type {
   FriendInfo,
   GroupInfo,
@@ -5,7 +6,7 @@ import type {
   Permission,
 } from './profile';
 
-export type Event =
+export type RecvEvents =
   | BotEvents
   | FriendEvents
   | GroupEvents
@@ -35,7 +36,7 @@ export interface BotOfflineEventDropped extends BotEvent {
 }
 
 export interface BotReloginEvent extends BotEvent {
-  type: '"BotReloginEvent';
+  type: 'BotReloginEvent';
 }
 
 type BotEvents =
@@ -299,5 +300,5 @@ export interface CommandExecutedEvent {
   name: string;
   friend: MemberProfile | null;
   member: MemberProfile | null;
-  args: Array<any>;
+  args: MessageChain;
 }
