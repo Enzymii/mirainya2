@@ -123,7 +123,7 @@ export default class Bot {
   private async checkMiraiStatus(): Promise<boolean> {
     try {
       const res = await this.session.sendRequest<MiraiApiResponse>('/about');
-      const { code, msg } = res as MiraiApiResponse;
+      const { code, msg } = res;
       if (code === 0) {
         Logger.log('Checking connection to server: passed', Logger.success);
         return true;

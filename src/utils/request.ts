@@ -45,11 +45,11 @@ export default class HttpRequest {
     }
 
     try {
-      const { code, session } = (await this.sendRequest<VerifyResponse>(
+      const { code, session } = await this.sendRequest<VerifyResponse>(
         '/verify',
         { verifyKey },
         'POST'
-      )) as VerifyResponse;
+      );
 
       if (code !== 0) {
         Logger.log(`Verify failed with code [${code}]`, Logger.error);
@@ -69,11 +69,11 @@ export default class HttpRequest {
     const session = givenSession ?? this.session;
 
     try {
-      const { code, msg } = (await this.sendRequest<MiraiApiResponse>(
+      const { code, msg } = await this.sendRequest<MiraiApiResponse>(
         '/bind',
         { sessionKey: session, qq },
         'POST'
-      )) as MiraiApiResponse;
+      );
 
       return this.checkResponse({ code, msg }, 'Bind');
     } catch (err) {
