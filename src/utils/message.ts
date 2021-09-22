@@ -1,5 +1,9 @@
 import * as Messages from '../types/message';
 
+const checkRecvChain = (chain: Messages.RecvMessageChain): boolean =>
+  chain.messageChain[0] && chain.messageChain[0].type === 'Source';
+export { checkRecvChain };
+
 export default class MakeMsg {
   public static plain = (text: string): Messages.PlainMessage => ({
     type: 'Plain',
@@ -12,6 +16,12 @@ export default class MakeMsg {
   });
 
   public static atAll = (): Messages.AtAllMessage => ({ type: 'AtAll' });
+
+  public static face = (faceId: number, name: string): Messages.FaceMessage => {
+    if (faceId) return { type: 'Face', faceId };
+    else if (name) return { type: 'Face', name };
+    else throw 'Incorrect Params';
+  };
 
   public static image = (
     imageId?: string,
@@ -56,6 +66,23 @@ export default class MakeMsg {
   public static poke = (type: Messages.PokeType): Messages.PokeMessage => ({
     type: 'Poke',
     name: type,
+  });
+
+  public static xml = (xml: string): Messages.XmlMessage => ({
+    type: 'Xml',
+    xml,
+  });
+
+  public static json = (
+    json: string | Record<string, unknown>
+  ): Messages.JsonMessage => ({
+    type: 'Json',
+    json: typeof json === 'string' ? json : JSON.stringify(json),
+  });
+
+  public static dice = (value?: number): Messages.DiceMessage => ({
+    type: 'Dice',
+    value: value ?? Math.floor(Math.random() * 6) + 1,
   });
 
   // To support more...

@@ -1,5 +1,6 @@
 import Bot from './src/bot';
 import botConfig from './src/config/botConfig';
+import { SourceMessage } from './src/types/message';
 import Logger from './src/utils/log';
 import MakeMsg from './src/utils/message';
 
@@ -8,12 +9,20 @@ const main = async () => {
   const bot = new Bot(botConfig);
   await bot.initialize();
   await bot.login();
-  const id = await bot.api?.sendFriendMessage(0, [MakeMsg.plain('test')]);
-  if (id) {
-    await bot.api?.recallMessage(id);
-  }
 
-  bot.listen((msg) => Logger.log(JSON.stringify(msg)), 'all');
+  bot.listen(async (msg) => {
+    Logger.log(JSON.stringify(msg));
+    if (msg.type === 'FriendMessage') {
+      try {
+        await bot.api?.sendFriendMessage(
+          msg.sender.id,
+          [MakeMsg.plain('QAQ')],
+          (msg.messageChain[0] as SourceMessage).id
+        );
+        // eslint-disable-next-line no-empty
+      } catch {}
+    }
+  }, 'all');
 };
 
 main();

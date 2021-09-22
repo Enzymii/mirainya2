@@ -97,11 +97,14 @@ export interface AtAllMessage {
   type: 'AtAll';
 }
 
-export interface FaceMessage {
-  type: 'Face';
-  faceId: number;
-  name: string;
-}
+export type FaceMessage = RequireAtLeastOne<
+  {
+    type: 'Face';
+    faceId: number;
+    name: string;
+  },
+  'faceId' | 'name'
+>;
 
 export interface PlainMessage {
   type: 'Plain';
@@ -165,7 +168,7 @@ export interface PokeMessage {
 
 export interface DiceMessage {
   type: 'Dice';
-  value?: number;
+  value: number;
 }
 
 export interface MusicShareMessage {
@@ -179,7 +182,7 @@ export interface MusicShareMessage {
   brief: string;
 }
 
-interface ForwardNode {
+export interface ForwardNode {
   senderId: number;
   time: number;
   senderName: string;
