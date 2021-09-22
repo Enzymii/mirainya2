@@ -10,6 +10,8 @@ const main = async () => {
   await bot.initialize();
   await bot.login();
 
+  await bot.api?.getGroupConfig(87204146);
+
   bot.listen(async (msg) => {
     Logger.log(JSON.stringify(msg));
     if (msg.type === 'FriendMessage') {
