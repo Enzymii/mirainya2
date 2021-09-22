@@ -1,5 +1,6 @@
 import type { RecvEvents } from './event';
 import type { FriendInfo, MemberProfile } from './profile';
+import { RequireAtLeastOne } from './utils';
 
 export type RecvType = RecvMessageChain | RecvEvents;
 
@@ -107,29 +108,32 @@ export interface PlainMessage {
   text: string;
 }
 
-type PicMessage = Partial<{
-  imageId: string;
-  url: string;
-  path: string;
-  base64: string;
-}>;
+type PicMessage<T extends string> = RequireAtLeastOne<
+  {
+    type: T;
+    imageId: string;
+    url: string;
+    path: string;
+    base64?: string;
+  },
+  'imageId' | 'url' | 'path' | 'base64'
+>;
 
-export interface ImageMessage extends PicMessage {
-  type: 'Image';
-}
+export type ImageMessage = PicMessage<'Image'>;
 
-export interface FlashImageMessage extends PicMessage {
-  type: 'FlashImage';
-}
+export type FlashImageMessage = PicMessage<'FlashImage'>;
 
-export interface VoiceMessage {
-  type: 'Voice';
-  voiceId: string;
-  url?: string;
-  path?: string;
-  base64?: string;
-  length?: number;
-}
+export type VoiceMessage = RequireAtLeastOne<
+  {
+    type: 'Voice';
+    voiceId: string;
+    url: string;
+    path: string;
+    base64?: string;
+    length?: number;
+  },
+  'voiceId' | 'url' | 'path' | 'base64'
+>;
 
 export interface XmlMessage {
   type: 'Xml';
@@ -146,15 +150,17 @@ export interface AppMessage {
   content: string;
 }
 
+export type PokeType =
+  | 'Poke'
+  | 'ShowLove'
+  | 'Like'
+  | 'Heartbroken'
+  | 'SixSixSix'
+  | 'FangDaZhao';
+
 export interface PokeMessage {
   type: 'Poke';
-  name:
-    | 'Poke'
-    | 'ShowLove'
-    | 'Like'
-    | 'Heartbroken'
-    | 'SixSixSix'
-    | 'FangDaZhao';
+  name: PokeType;
 }
 
 export interface DiceMessage {
