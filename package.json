@@ -1,6 +1,6 @@
 {
   "name": "mirainya2",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Mirai Typescript SDK for mirai-api-http^2.x",
   "main": "index.js",
   "author": "enzymii",
