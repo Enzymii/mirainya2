@@ -5,11 +5,17 @@ import type {
   FriendInfo,
   GroupInfo,
   MemberProfile,
+  Permission,
   PersonProfile,
 } from './types/profile';
 import type { MiraiApiResponse } from './utils/request';
 import type { MessageChain, RecvMessageChain } from './types/message';
 import { TextDecoder } from 'util';
+import {
+  BotInvitedJoinGroupRequestEvent,
+  MemberJoinRequestEvent,
+  NewFriendRequestEvent,
+} from './types/event';
 
 interface SendMessageResponse {
   code: number;
@@ -30,6 +36,31 @@ interface GroupConfig {
   autoApprove: boolean;
   anonymousChat: true;
 }
+
+interface MemberConfig {
+  id: number;
+  memberName: string; // 群名片
+  specialTitle: string; // 群头衔
+  permission: Permission;
+  joinTimestamp: number;
+  lastSpeakTimeStamp: number;
+  muteTimeRemaining: number;
+  group: GroupInfo;
+}
+
+type FriendRequestOptions = 'accept' | 'refuse' | 'refuseForever' | 0 | 1 | 2;
+type MemberJoinRequestOptions =
+  | 'accept'
+  | 'refuse'
+  | 'ignore'
+  | 'refuseForever'
+  | 'ignoreForever'
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4;
+type InviteRequestOptions = 'accept' | 'refuse' | boolean | 0 | 1;
 
 export default class Api {
   private session: HttpRequest;
@@ -87,7 +118,7 @@ export default class Api {
 
   private async postAction(
     path: string,
-    params: Record<string, number | string | boolean>,
+    params: Record<string, unknown>,
     actionText?: string
   ): Promise<void> {
     const url = `/${path}`;
@@ -101,7 +132,30 @@ export default class Api {
       this.reportRequestError(code, msg, text);
       throw 'request error';
     }
-    Logger.log(`${TextDecoder} success`);
+    Logger.log(`${TextDecoder} success`, Logger.text);
+  }
+
+  private async handleEvent(
+    path: string,
+    eventId: number,
+    params?: Record<string, number>,
+    message?: string
+  ): Promise<void> {
+    const { code, msg } = await this.session.sendRequest<PostActionResponse>(
+      `/resp/${path}Event`,
+      {
+        eventId,
+        ...params,
+        message,
+      },
+      'POST'
+    );
+
+    if (code !== 0) {
+      this.reportRequestError(code, msg, `response to event [${eventId}]`);
+      throw 'request error';
+    }
+    Logger.log(`response to event [${eventId}] success`, Logger.text);
   }
 
   private reportRequestError(code: number, msg: string, text: string): void {
@@ -310,4 +364,138 @@ export default class Api {
       { target: groupId, ...config },
       `set group [${groupId}] config`
     );
+
+  public getMemberConfig = async (
+    groupId: number,
+    memberId: number
+  ): Promise<MemberConfig> => {
+    const resp = await this.session.sendRequest<
+      MemberConfig | PostActionResponse
+    >('/memberInfo', { target: groupId, memberId });
+
+    const validation = (resp: unknown): resp is MemberConfig =>
+      !(resp as PostActionResponse).code;
+
+    if (!validation(resp)) {
+      const { code, msg } = resp;
+      this.reportRequestError(
+        code,
+        msg,
+        `get [${memberId}] config in group [${groupId}]`
+      );
+      throw 'request error';
+    }
+    Logger.log(
+      `get [${memberId}] config in group [${groupId}] ok: ${JSON.stringify(
+        resp
+      )}`
+    );
+    return resp;
+  };
+  public setMemberConfig = async (
+    groupId: number,
+    memberId: number,
+    newConfig: Partial<{ name: string; specialTitle: string }>
+  ): Promise<void> =>
+    this.postAction('/memberInfo', {
+      target: groupId,
+      memberId,
+      info: newConfig,
+    });
+
+  private readonly friendRequestOperation = [
+    'accept',
+    'refuse',
+    'refuseForever',
+  ];
+  private readonly memberJoinRequestOperation = [
+    'accept',
+    'refuse',
+    'ignore',
+    'refuseForever',
+    'ignoreForever',
+  ];
+
+  public handleFriendRequest = async (
+    eventId: number,
+    qq: number,
+    operate: FriendRequestOptions,
+    groupId = 0,
+    message = ''
+  ): Promise<void> => {
+    this.handleEvent(
+      'newFriendRequest',
+      eventId,
+      {
+        fromId: qq,
+        groupId,
+        operate:
+          typeof operate === 'number'
+            ? operate
+            : this.friendRequestOperation.indexOf(operate),
+      },
+      message
+    );
+  };
+  public handleFriendRequestDirect = async (
+    { eventId, fromId, groupId }: NewFriendRequestEvent,
+    operate: FriendRequestOptions,
+    message = ''
+  ): Promise<void> =>
+    this.handleFriendRequest(eventId, fromId, operate, groupId, message);
+
+  public handleMemberJoinRequest = async (
+    eventId: number,
+    groupId: number,
+    memberId: number,
+    operate: MemberJoinRequestOptions,
+    message = ''
+  ): Promise<void> => {
+    this.handleEvent(
+      'memberJoinRequest',
+      eventId,
+      {
+        fromId: memberId,
+        groupId,
+        operate:
+          typeof operate === 'number'
+            ? operate
+            : this.memberJoinRequestOperation.indexOf(operate),
+      },
+      message
+    );
+  };
+  public handleMemberJoinRequestDirect = async (
+    { eventId, fromId, groupId }: MemberJoinRequestEvent,
+    operate: MemberJoinRequestOptions,
+    message = ''
+  ): Promise<void> =>
+    this.handleMemberJoinRequest(eventId, groupId, fromId, operate, message);
+
+  public handleInviteRequest = async (
+    eventId: number,
+    inviter: number,
+    groupId: number,
+    operate: InviteRequestOptions,
+    message = ''
+  ): Promise<void> =>
+    this.handleEvent(
+      'botInvitedJoinGroupRequest',
+      eventId,
+      {
+        fromId: inviter,
+        groupId,
+        operate:
+          operate === 'accept' || operate === true || operate === 0 ? 0 : 1,
+      },
+      message
+    );
+  public handleInviteRequestDirect = async (
+    { eventId, fromId, groupId }: BotInvitedJoinGroupRequestEvent,
+    operate: InviteRequestOptions,
+    message = ''
+  ): Promise<void> =>
+    this.handleInviteRequest(eventId, fromId, groupId, operate, message);
+
+  // file operations, multimedia upload and command operations are not implemented yet
 }

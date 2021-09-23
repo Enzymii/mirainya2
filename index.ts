@@ -10,8 +10,6 @@ const main = async () => {
   await bot.initialize();
   await bot.login();
 
-  await bot.api?.getGroupConfig(87204146);
-
   bot.listen(async (msg) => {
     Logger.log(JSON.stringify(msg));
     if (msg.type === 'FriendMessage') {
@@ -21,6 +19,11 @@ const main = async () => {
           [MakeMsg.plain('QAQ')],
           (msg.messageChain[0] as SourceMessage).id
         );
+        // eslint-disable-next-line no-empty
+      } catch {}
+    } else if (msg.type === 'NewFriendRequestEvent') {
+      try {
+        bot.api?.handleFriendRequestDirect(msg, 'accept', 'QAQ');
         // eslint-disable-next-line no-empty
       } catch {}
     }
