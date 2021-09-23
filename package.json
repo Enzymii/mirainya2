@@ -22,7 +22,7 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "start": "tsc && node index",
+    "start": "tsc && node test",
     "test": "tsc",
     "lint": "eslint ./ --ignore-path .gitignore --fix",
     "commit": "tsc && cz"

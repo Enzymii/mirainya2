@@ -1,9 +1,5 @@
 import * as Messages from '../types/message';
 
-const checkRecvChain = (chain: Messages.RecvMessageChain): boolean =>
-  chain.messageChain[0] && chain.messageChain[0].type === 'Source';
-export { checkRecvChain };
-
 export default class MakeMsg {
   public static plain = (text: string): Messages.PlainMessage => ({
     type: 'Plain',
