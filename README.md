@@ -12,8 +12,32 @@ Trying my best to make progress every day
 
 Firstly you need to guarantee that you have the `mirai-api-http^2` env
 
-Currently you can clone the repo test it in `index.ts` by modifying the code
+I have published it by yarn, so you can use
 
-When I finish this I will publish it to `npm`, so `npm install mirainya2` should be available then.
+```sh
+yarn install mirainya2
+```
+
+An example program can be:
+
+```ts
+import { Bot, Logger, MakeMsg } from 'mirainya2';
+
+const main = async (): Promise<void> => {
+  const myBot = new Bot(botConfig); // the sample of botConfig can be found in ./src/config_sample
+
+  await myBot.initialize();
+  await myBot.login();
+
+  myBot.listen(async (msg) => {
+    Logger.log(JSON.stringify(msg));
+    if (msg.type === 'FriendMessage') {
+      await myBot.api?.sendFriendMessage(msg.sender.id, [MakeMsg.plain('QAQ')]);
+    }
+  }, 'msg');
+};
+
+main();
+```
 
 _Welcome contribution_
