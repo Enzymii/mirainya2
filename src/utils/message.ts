@@ -1,4 +1,5 @@
 import * as Messages from '../types/message';
+import Exception from './exception';
 
 export default class MakeMsg {
   public static plain = (text: string): Messages.PlainMessage => ({
@@ -13,10 +14,16 @@ export default class MakeMsg {
 
   public static atAll = (): Messages.AtAllMessage => ({ type: 'AtAll' });
 
-  public static face = (faceId: number, name: string): Messages.FaceMessage => {
+  public static face = (
+    faceId?: number,
+    name?: string
+  ): Messages.FaceMessage => {
     if (faceId) return { type: 'Face', faceId };
     else if (name) return { type: 'Face', name };
-    else throw 'Incorrect Params';
+    else
+      throw new Exception('ParamException', 'MakeMsg.face', {
+        requireAtLeastOne: ['faceId', 'name'],
+      });
   };
 
   public static image = (
@@ -29,7 +36,10 @@ export default class MakeMsg {
     else if (url) return { type: 'Image', url };
     else if (path) return { type: 'Image', path };
     else if (base64) return { type: 'Image', base64 };
-    else throw 'Incorrect Params';
+    else
+      throw new Exception('ParamException', 'MakeMsg.image', {
+        requireAtLeastOne: ['imageId', 'url', 'path', 'base64'],
+      });
   };
 
   public static flashImage = (
@@ -42,7 +52,10 @@ export default class MakeMsg {
     else if (url) return { type: 'FlashImage', url };
     else if (path) return { type: 'FlashImage', path };
     else if (base64) return { type: 'FlashImage', base64 };
-    else throw 'Incorrect Params';
+    else
+      throw new Exception('ParamException', 'MakeMsg.FlashImage', {
+        requireAtLeastOne: ['imageId', 'url', 'path', 'base64'],
+      });
   };
 
   public static voice = (
@@ -56,7 +69,10 @@ export default class MakeMsg {
     else if (url) return { type: 'Voice', url, length };
     else if (path) return { type: 'Voice', path, length };
     else if (base64) return { type: 'Voice', base64, length };
-    else throw 'Incorrect Params';
+    else
+      throw new Exception('ParamException', 'MakeMsg.Voice', {
+        requireAtLeastOne: ['voiceId', 'url', 'path', 'base64'],
+      });
   };
 
   public static poke = (type: Messages.PokeType): Messages.PokeMessage => ({

@@ -16,6 +16,7 @@ import {
   MemberJoinRequestEvent,
   NewFriendRequestEvent,
 } from './types/event';
+import Exception from './utils/exception';
 
 interface SendMessageResponse {
   code: number;
@@ -73,8 +74,10 @@ export default class Api {
     callerName: string,
     target: Record<string, number>,
     messageChain: MessageChain,
-    quote?: number
+    quote?: number,
+    text?: string
   ): Promise<number> {
+    const src = text ?? callerName;
     const url = `/${callerName}`;
     const { code, msg, messageId } =
       await this.session.sendRequest<SendMessageResponse>(
@@ -84,8 +87,7 @@ export default class Api {
       );
 
     if (code !== 0) {
-      this.reportRequestError(code, msg, callerName);
-      throw 'request error';
+      this.reportRequestError(code, msg, src);
     }
     Logger.log(`${callerName} success with id [${messageId}]`);
     return messageId;
@@ -93,6 +95,7 @@ export default class Api {
 
   private async getInfo<T>(
     callerName: string,
+    text?: string,
     params?: Record<string, unknown>
   ): Promise<T> {
     interface FriendListResponse extends MiraiApiResponse {
@@ -100,6 +103,7 @@ export default class Api {
     }
 
     const url = `/${callerName}`;
+    const src = text ?? `get ${callerName}`;
 
     const { code, msg, data } =
       (await this.session.sendRequest<MiraiApiResponse>(
@@ -108,11 +112,10 @@ export default class Api {
       )) as FriendListResponse;
 
     if (code !== 0) {
-      this.reportRequestError(code, msg, `get ${callerName}`);
-      throw 'request error';
+      this.reportRequestError(code, msg, src);
     }
 
-    Logger.log(`Get ${callerName} success`, Logger.text);
+    Logger.log(`${src} success`, Logger.text);
     return data;
   }
 
@@ -130,7 +133,6 @@ export default class Api {
     );
     if (code !== 0) {
       this.reportRequestError(code, msg, text);
-      throw 'request error';
     }
     Logger.log(`${TextDecoder} success`, Logger.text);
   }
@@ -151,15 +153,16 @@ export default class Api {
       'POST'
     );
 
+    const src = `response to event [${eventId}]`;
+
     if (code !== 0) {
-      this.reportRequestError(code, msg, `response to event [${eventId}]`);
-      throw 'request error';
+      this.reportRequestError(code, msg, src);
     }
-    Logger.log(`response to event [${eventId}] success`, Logger.text);
+    Logger.log(`${src} success`, Logger.text);
   }
 
-  private reportRequestError(code: number, msg: string, text: string): void {
-    Logger.log(`Request error on ${text}: [${code}] ${msg}`, Logger.error);
+  private reportRequestError(code: number, msg: string, src: string): never {
+    throw new Exception('HttpException', src, { code, msg });
   }
 
   public sendFriendMessage = async (
@@ -201,17 +204,16 @@ export default class Api {
   public sendNudge = async (
     qq: number,
     type: 'Friend' | 'Group' | 'Stranger',
-    positionId: number
+    positionId?: number
   ): Promise<void> => {
     const { code, msg } = await this.session.sendRequest<MiraiApiResponse>(
       '/sendNudge',
-      { target: qq, subject: positionId, kind: type },
+      { target: qq, subject: positionId ?? qq, kind: type },
       'POST'
     );
 
     if (code !== 0) {
       this.reportRequestError(code, msg, 'send Nudge');
-      throw 'request error';
     }
     Logger.log('send Nudge success');
   };
@@ -224,29 +226,38 @@ export default class Api {
     );
 
     if (code !== 0) {
-      this.reportRequestError(code, msg, 'recall message');
-      throw 'recall error';
+      this.reportRequestError(code, msg, `recall message #${messageId}`);
     }
     Logger.log(`recall message[${messageId}] success`);
   };
 
   public getFriendList = async (): Promise<FriendInfo[]> =>
-    this.getInfo<FriendInfo[]>('friendList');
+    this.getInfo<FriendInfo[]>('friendList', 'get friend list');
   public getGroupList = async (): Promise<GroupInfo[]> =>
-    this.getInfo<GroupInfo[]>('groupList');
+    this.getInfo<GroupInfo[]>('groupList', 'get group list');
   public getMemberList = async (groupId: number): Promise<MemberProfile[]> =>
-    this.getInfo<MemberProfile[]>('memberList', { target: groupId });
+    this.getInfo<MemberProfile[]>(
+      'memberList',
+      `get member list of group [${groupId}]`,
+      { target: groupId }
+    );
   public getBotProfile = async (): Promise<PersonProfile> =>
-    this.getInfo<PersonProfile>('botProfile');
-  public getFriendProfile = async (): Promise<PersonProfile> =>
-    this.getInfo<PersonProfile>('friendProfile');
+    this.getInfo<PersonProfile>('botProfile', 'get bot profile');
+  public getFriendProfile = async (qq: number): Promise<PersonProfile> =>
+    this.getInfo<PersonProfile>('friendProfile', `get [${qq}]'s profile`);
   public getMemberProfile = async (
     groupId: number,
     memberId: number
   ): Promise<PersonProfile> =>
-    this.getInfo<PersonProfile>('memberProfile', { target: groupId, memberId });
+    this.getInfo<PersonProfile>(
+      'memberProfile',
+      `get [${memberId}] in group [${groupId}]'s profile`,
+      { target: groupId, memberId }
+    );
   public getMessageById = async (id: number): Promise<RecvMessageChain> =>
-    this.getInfo<RecvMessageChain>('messageFromId', { id });
+    this.getInfo<RecvMessageChain>('messageFromId', `get message #${id}`, {
+      id,
+    });
 
   public deleteFriend = async (id: number): Promise<void> =>
     this.postAction('deleteFriend', { target: id }, `delete friend ${id}`);
@@ -350,7 +361,6 @@ export default class Api {
     if (!validation(resp)) {
       const { code, msg } = resp;
       this.reportRequestError(code, msg, `get group [${groupId}] config`);
-      throw 'request error';
     }
     Logger.log(`get group [${groupId}] config ok: ${JSON.stringify(resp)}`);
     return resp;
@@ -383,7 +393,6 @@ export default class Api {
         msg,
         `get [${memberId}] config in group [${groupId}]`
       );
-      throw 'request error';
     }
     Logger.log(
       `get [${memberId}] config in group [${groupId}] ok: ${JSON.stringify(

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import Logger from './log';
+import Exception from './exception';
 
 export default class HttpRequest {
   private instance: AxiosInstance;
@@ -30,11 +31,7 @@ export default class HttpRequest {
         return resp as T;
       }
     } catch (err) {
-      Logger.log(
-        `Error occurred when sending HTTP request: ${err}`,
-        Logger.error
-      );
-      throw err;
+      throw new Exception('HttpException', 'axios', { details: 'omitted' });
     }
   };
 
