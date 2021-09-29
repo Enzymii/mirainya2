@@ -1,6 +1,6 @@
 import HttpRequest from './utils/request';
 import Logger from './utils/log';
-import Api from './api';
+import Api, { ApiValue } from './api';
 import { recvIsMessage } from './types/message';
 import { RecvEvents } from './types/event';
 
@@ -29,7 +29,7 @@ export default class Bot {
   private qq: number;
   private key: string;
   private baseUrl: string;
-  private adapter: AdapterOption;
+  // private adapter: AdapterOption;
   private session: HttpRequest;
 
   private isLogined: boolean;
@@ -37,26 +37,23 @@ export default class Bot {
   private readonly _api: Api;
 
   constructor(config: BotConfig) {
-    const { qq, verifyKey, host, port, adapter, timeout } = config;
+    const { qq, verifyKey, host, port, /*adapter,*/ timeout } = config;
     this.qq = qq;
     this.key = verifyKey;
     this.baseUrl = `${host}:${port}`;
-    this.adapter = adapter;
+    // this.adapter = adapter;
     this.session = new HttpRequest(`${this.baseUrl}`, timeout);
 
     this.isLogined = false;
 
-    this._api = new Api(this.session);
+    this._api = new Api();
   }
 
-  public get api(): Api | null {
-    if (!this.checkLoginStatus) {
-      return null;
-    }
+  public get api(): Api {
     return this._api;
   }
 
-  public async initialize(): Promise<void> {
+  private async initialize(): Promise<void> {
     const isConnected = await this.checkMiraiStatus();
     if (!isConnected) {
       Logger.log('Connection Failed. Aborted.', Logger.critical);
@@ -64,10 +61,15 @@ export default class Bot {
     }
   }
 
-  public async login(): Promise<boolean> {
-    return (this.isLogined =
-      (await this.session.verify(this.key)) !== null &&
-      (await this.session.bind(this.qq)));
+  public async login(): Promise<ApiValue<void>> {
+    this.initialize();
+    const apiActivation = await this.api.activate(
+      this.session,
+      this.key,
+      this.qq
+    );
+    this.isLogined = apiActivation.flag;
+    return apiActivation;
   }
 
   public listen(

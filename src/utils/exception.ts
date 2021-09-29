@@ -1,6 +1,9 @@
 import Logger from './log';
 
-type ExceptionNames = 'HttpException' | 'ParamException';
+type ExceptionNames =
+  | 'UnverifiedException'
+  | 'HttpException'
+  | 'ParamException';
 
 export default class Exception {
   name: ExceptionNames;
@@ -19,9 +22,9 @@ export default class Exception {
 
   log(): void {
     Logger.log(
-      `Exception '${this.name}' at ${this.source}: ${JSON.stringify(
-        this.details
-      )}`,
+      `Exception '${this.name}' at ${this.source}: ${
+        this.details ? JSON.stringify(this.details) : 'No details provided.'
+      }`,
       Logger.critical
     );
   }

@@ -31,11 +31,13 @@ export default class HttpRequest {
         return resp as T;
       }
     } catch (err) {
-      throw new Exception('HttpException', 'axios', { details: 'omitted' });
+      throw new Exception('HttpException', 'axios', {
+        details: { message: (err as { message: string }).message },
+      });
     }
   };
 
-  public verify = async (verifyKey: string): Promise<string | null> => {
+  public verify = async (verifyKey: string): Promise<string | undefined> => {
     interface VerifyResponse {
       code: number;
       session: string;
@@ -50,7 +52,7 @@ export default class HttpRequest {
 
       if (code !== 0) {
         Logger.log(`Verify failed with code [${code}]`, Logger.error);
-        return null;
+        return undefined;
       } else {
         Logger.log(`Verify success with sessionKey: ${session}`, Logger.info);
         this.session = session;
@@ -58,7 +60,7 @@ export default class HttpRequest {
       }
     } catch (err) {
       this.reportError(err, 'Verify');
-      return null;
+      return undefined;
     }
   };
 
