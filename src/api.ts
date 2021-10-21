@@ -49,11 +49,13 @@ interface MemberConfig {
   group: GroupInfo;
 }
 
-type ApiFail = { flag: false; exception: Exception };
-type ApiPass<T> = { flag: true; result: T };
 export type ApiValue<T> = T extends void
-  ? ApiFail | { flag: true }
-  : ApiFail | ApiPass<T>;
+  ?
+      | { flag: true; result: undefined; exception: undefined }
+      | { flag: false; result: undefined; exception: Exception }
+  :
+      | { flag: true; result: T; exception: undefined }
+      | { flag: false; result: undefined; exception: Exception };
 
 type FriendRequestOptions = 'accept' | 'refuse' | 'refuseForever' | 0 | 1 | 2;
 type MemberJoinRequestOptions =
@@ -68,6 +70,9 @@ type MemberJoinRequestOptions =
   | 3
   | 4;
 type InviteRequestOptions = 'accept' | 'refuse' | boolean | 0 | 1;
+
+const UndefinedResult = { result: undefined };
+const UndefinedException = { exception: undefined };
 
 export default class Api {
   private _session?: HttpRequest;
@@ -91,11 +96,11 @@ export default class Api {
       if (!bound) {
         throw new Exception('UnverifiedException', 'bot.api.bind');
       }
-      return { flag: true };
+      return { flag: true, ...UndefinedResult, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   }
 
@@ -131,11 +136,11 @@ export default class Api {
         this.reportRequestError(code, msg, src);
       }
       Logger.log(`${callerName} success with id [${messageId}]`);
-      return { flag: true, result: messageId };
+      return { flag: true, result: messageId, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   }
 
@@ -163,11 +168,15 @@ export default class Api {
       }
 
       Logger.log(`${src} success`, Logger.text);
-      return { flag: true, result: data as T } as ApiValue<T>;
+      return {
+        flag: true,
+        result: data as T,
+        ...UndefinedException,
+      } as ApiValue<T>;
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   }
 
@@ -189,11 +198,11 @@ export default class Api {
         this.reportRequestError(code, msg, text);
       }
       Logger.log(`${TextDecoder} success`, Logger.text);
-      return { flag: true };
+      return { flag: true, ...UndefinedResult, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   }
 
@@ -221,11 +230,11 @@ export default class Api {
         this.reportRequestError(code, msg, src);
       }
       Logger.log(`${src} success`, Logger.text);
-      return { flag: true };
+      return { flag: true, ...UndefinedResult, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   }
 
@@ -285,11 +294,11 @@ export default class Api {
         this.reportRequestError(code, msg, 'send Nudge');
       }
       Logger.log('send Nudge success');
-      return { flag: true };
+      return { flag: true, ...UndefinedResult, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   };
 
@@ -305,11 +314,11 @@ export default class Api {
         this.reportRequestError(code, msg, `recall message #${messageId}`);
       }
       Logger.log(`recall message[${messageId}] success`);
-      return { flag: true };
+      return { flag: true, ...UndefinedResult, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   };
 
@@ -457,11 +466,11 @@ export default class Api {
         this.reportRequestError(code, msg, `get group [${groupId}] config`);
       }
       Logger.log(`get group [${groupId}] config ok: ${JSON.stringify(resp)}`);
-      return { flag: true, result: resp };
+      return { flag: true, result: resp, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   };
   public setGroupConfig = async (
@@ -502,11 +511,11 @@ export default class Api {
           resp
         )}`
       );
-      return { flag: true, result: resp };
+      return { flag: true, result: resp, ...UndefinedException };
     } catch (e) {
       const exception = e as Exception;
       exception.log();
-      return { flag: false, exception };
+      return { flag: false, ...UndefinedResult, exception };
     }
   };
   public setMemberConfig = async (
